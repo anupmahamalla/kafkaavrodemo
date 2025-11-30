@@ -1,0 +1,18 @@
+{
+  "namespace": "com.ssnc.avroModels",
+  "type": "record",
+  "name": "TaxLotDetailKey",
+  "doc": "Key schema for TaxLotDetail events.",
+  "fields": [
+    {
+      "name": "EventId",
+      "type": "string",
+      "doc": "Event identifier (VARCHAR(32))"
+    },
+    {
+      "name": "InvestmentId",
+      "type": "string",
+      "doc": "Investment identifier (VARCHAR(255))"
+    }
+  ]
+}

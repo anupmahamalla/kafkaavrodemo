@@ -1,0 +1,143 @@
+{
+  "namespace": "com.ssnc.avroModels",
+  "type": "record",
+  "name": "TaxLotDetail",
+  "doc": "Value schema for TaxLotDetail events (excluding key/header fields EventId and InvestmentId).",
+  "fields": [
+    {
+      "name": "ClientShortName",
+      "type": "string",
+      "doc": "Unique client code from GoCheck (VARCHAR(32))"
+    },
+    {
+      "name": "ClientId",
+      "type": "long",
+      "doc": "Unique client ID from GoCheck (Integer(20) / BIGINT)"
+    },
+    {
+      "name": "FundShortName",
+      "type": "string",
+      "doc": "Unique fund code from GoCheck (VARCHAR(32))"
+    },
+    {
+      "name": "FundId",
+      "type": "long",
+      "doc": "Unique fund ID from GoCheck (Integer(20) / BIGINT)"
+    },
+    {
+      "name": "GenevaServer",
+      "type": "string",
+      "doc": "Field used to identify server (VARCHAR(100))"
+    },
+    {
+      "name": "TaxLotId",
+      "type": "long",
+      "doc": "Holds the Geneva TaxLot Id (Integer(20) / BIGINT)"
+    },
+    {
+      "name": "AccrualDate",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "Holds the date for which the accrual needs to be calculated (ISO 8601 timestamp → epoch millis UTC)"
+    },
+    {
+      "name": "TradeDate",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "Holds the trade Date of the trade (ISO 8601 timestamp → epoch millis UTC)"
+    },
+    {
+      "name": "EffectiveDate",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "Holds the settle Date of the trade (ISO 8601 timestamp → epoch millis UTC)"
+    },
+    {
+      "name": "Quantity",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 18,
+        "scale": 9
+      },
+      "doc": "Holds the open quantity (DECIMAL(18,9))"
+    },
+    {
+      "name": "TradeNotional",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 18,
+        "scale": 9
+      },
+      "doc": "Holds the notional of the trade (DECIMAL(18,9))"
+    },
+    {
+      "name": "TradePrice",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 18,
+        "scale": 9
+      },
+      "doc": "Holds the price of the trade (DECIMAL(18,9))"
+    },
+    {
+      "name": "ResetPrice",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 18,
+        "scale": 9
+      },
+      "doc": "Holds the price on the reset date (DECIMAL(18,9))"
+    },
+    {
+      "name": "SwapCurrency",
+      "type": "string",
+      "doc": "Holds the currency of the Swap Investment (VARCHAR(10))"
+    },
+    {
+      "name": "Spread",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 18,
+        "scale": 9
+      },
+      "doc": "Holds the Initial Spread (DECIMAL(18,9))"
+    },
+    {
+      "name": "MarketPrice",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 18,
+        "scale": 9
+      },
+      "doc": "Holds the Market Price of the trade (DECIMAL(18,9))"
+    },
+    {
+      "name": "UnderlyingInvestmentId",
+      "type": "string",
+      "doc": "Holds the underlying Investment Id of the Swap (VARCHAR(255))"
+    },
+    {
+      "name": "UnderlyingCurrency",
+      "type": "string",
+      "doc": "Holds the currency of the underlying investment (VARCHAR(10))"
+    },
+    {
+      "name": "UserTranId",
+      "type": "string",
+      "doc": "Holds the user Transaction Id of the trade (VARCHAR(255))"
+    },
+    {
+      "name": "KnowledgeDate",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "KnowledgeDate at which we got the open positions (ISO 8601 timestamp → epoch millis UTC)"
+    },
+    {
+      "name": "CreatedAt",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "When was the tax lot record created (ISO 8601 timestamp → epoch millis UTC)"
+    }
+  ]
+}
