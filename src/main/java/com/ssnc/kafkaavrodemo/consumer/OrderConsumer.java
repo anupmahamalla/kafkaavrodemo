@@ -12,8 +12,8 @@ public class OrderConsumer {
 
     @KafkaListener(
             topics = "${spring.kafka.topic.orders}",
-            groupId = "${spring.kafka.consumer.group-id}",
-            containerFactory = "kafkaListenerContainerFactory"
+            groupId = "${spring.kafka.order.consumer.group-id}",
+            containerFactory = "orderKafkaListenerContainerFactory"
     )
     public void consumeOrder(ConsumerRecord<String, OrderDetails> record) {
         try {

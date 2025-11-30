@@ -1,14 +1,16 @@
 # Kafka Avro Demo Application
 
-A Spring Boot application demonstrating Kafka integration with Avro serialization for order processing.
+A Spring Boot application demonstrating Kafka integration with Avro serialization for order processing and tax lot management.
 
 ## Features
 
-- **Avro Schema**: OrderDetails schema with automatic Java class generation
-- **Kafka Producer**: REST API to create and publish orders to Kafka
-- **Kafka Consumer**: Automatically consumes and processes orders from Kafka topic
+- **Avro Schemas**: Multiple Avro schemas (OrderDetails, TaxLotDetail, TaxLotDetailKey) with automatic Java class generation
+- **Kafka Producers**: REST APIs to create and publish orders and tax lots to Kafka
+- **Kafka Consumers**: Automatically consumes and processes messages from Kafka topics
 - **Schema Registry**: Confluent Schema Registry for Avro schema management
 - **Docker Support**: Complete Docker Compose setup for Kafka ecosystem
+- **Type-Safe Serialization**: Strongly-typed Avro serialization/deserialization
+- **Decimal Precision**: High-precision decimal handling for financial data
 
 ## Prerequisites
 
@@ -24,17 +26,28 @@ kafkaavrodemo/
 │   ├── java/com/ssnc/
 │   │   ├── kafkaavrodemo/
 │   │   │   ├── config/KafkaConfig.java           # Kafka configuration
-│   │   │   ├── producer/OrderProducer.java       # Kafka producer service
-│   │   │   ├── consumer/OrderConsumer.java       # Kafka consumer service
-│   │   │   ├── controller/OrderController.java   # REST API controller
+│   │   │   ├── producer/
+│   │   │   │   ├── OrderProducer.java            # Order Kafka producer
+│   │   │   │   └── TaxLotProducer.java           # TaxLot Kafka producer
+│   │   │   ├── consumer/
+│   │   │   │   ├── OrderConsumer.java            # Order Kafka consumer
+│   │   │   │   └── TaxLotConsumer.java           # TaxLot Kafka consumer
+│   │   │   ├── controller/
+│   │   │   │   ├── OrderController.java          # Order REST API
+│   │   │   │   └── TaxLotController.java         # TaxLot REST API
 │   │   │   └── KafkaavrodemoApplication.java    # Main application
 │   │   └── orders/Order.java
 │   └── resources/
-│       ├── avro/orderDetails.avsc                # Avro schema definition
+│       ├── avro/
+│       │   ├── orderDetails.avsc                 # Order Avro schema
+│       │   ├── TaxLot.avsc                       # TaxLot value schema
+│       │   └── TaxLotKey.avsc                    # TaxLot key schema
 │       └── application.yaml                       # Application configuration
 ├── target/generated-sources/avro/                # Auto-generated Avro classes
 ├── docker-compose.yml                            # Docker Compose configuration
 ├── Dockerfile                                     # Application Docker image
+├── test-orders.ps1                               # Order API test script
+├── test-taxlots.ps1                              # TaxLot API test script
 └── pom.xml
 ```
 

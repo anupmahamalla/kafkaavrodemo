@@ -10,25 +10,35 @@ spring:
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     schema-registry-url: ${SPRING_KAFKA_SCHEMA_REGISTRY_URL:http://localhost:8081}
+
+    # Topics configuration
     topic:
       orders: order-details-topic
       taxlots: taxlot-details-topic
 
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
-      properties:
-        schema.registry.url: ${SPRING_KAFKA_SCHEMA_REGISTRY_URL:http://localhost:8081}
+    # Order-specific configuration (uses String keys)
+    order:
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      consumer:
+        group-id: order-consumer-group
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+        auto-offset-reset: earliest
+        specific-avro-reader: true
 
-    consumer:
-      group-id: order-consumer-group
-      taxlot-group-id: taxlot-consumer-group
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
-      auto-offset-reset: earliest
-      properties:
-        schema.registry.url: ${SPRING_KAFKA_SCHEMA_REGISTRY_URL:http://localhost:8081}
-        specific.avro.reader: true
+    # TaxLot-specific configuration (uses Avro keys)
+    taxlot:
+      producer:
+        key-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+        value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      consumer:
+        group-id: taxlot-consumer-group
+        key-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+        value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+        auto-offset-reset: earliest
+        specific-avro-reader: true
 
 server:
   port: 8080

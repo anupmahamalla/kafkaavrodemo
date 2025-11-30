@@ -1,11 +1,15 @@
 package com.ssnc.kafkaavrodemo.consumer;
 
 import com.ssnc.avroModels.TaxLotDetail;
+import com.ssnc.avroModels.TaxLotDetailKey;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 
 @Service
@@ -14,16 +18,17 @@ public class TaxLotConsumer {
 
     @KafkaListener(
             topics = "${spring.kafka.topic.taxlots}",
-            groupId = "${spring.kafka.consumer.taxlot-group-id}",
+            groupId = "${spring.kafka.taxlot.consumer.group-id}",
             containerFactory = "taxLotKafkaListenerContainerFactory"
     )
-    public void consumeTaxLot(ConsumerRecord<String, TaxLotDetail> record) {
+    public void consumeTaxLot(ConsumerRecord<TaxLotDetailKey, TaxLotDetail> record) {
         try {
+            TaxLotDetailKey key = record.key();
             TaxLotDetail taxLotDetail = record.value();
-            String key = record.key();
 
-            log.info("Received tax lot from Kafka - Topic: {}, Partition: {}, Offset: {}, Key: {}",
-                    record.topic(), record.partition(), record.offset(), key);
+            log.info("Received tax lot from Kafka - Topic: {}, Partition: {}, Offset: {}, Key: [EventId: {}, InvestmentId: {}]",
+                    record.topic(), record.partition(), record.offset(),
+                    key.getEventId(), key.getInvestmentId());
 
             log.info("Tax Lot Details - Client: {} (ID: {}), Fund: {} (ID: {}), TaxLotId: {}, Server: {}",
                     taxLotDetail.getClientShortName(),
@@ -34,16 +39,15 @@ public class TaxLotConsumer {
                     taxLotDetail.getGenevaServer());
 
             log.info("Trade Info - TradeDate: {}, EffectiveDate: {}, Quantity: {}, TradePrice: {}, TradeNotional: {}",
-                    Instant.ofEpochMilli(taxLotDetail.getTradeDate().toEpochMilli()),
-                    Instant.ofEpochMilli(taxLotDetail.getEffectiveDate().toEpochMilli()),
-                    taxLotDetail.getQuantity(),
-                    taxLotDetail.getTradePrice(),
-                    taxLotDetail.getTradeNotional());
+                    taxLotDetail.getTradeDate(), taxLotDetail.getEffectiveDate(),
+                    convertFromAvroDecimal(taxLotDetail.getQuantity()),
+                    convertFromAvroDecimal(taxLotDetail.getTradePrice()),
+                    convertFromAvroDecimal(taxLotDetail.getTradeNotional()));
 
             log.info("Swap Info - Currency: {}, Spread: {}, MarketPrice: {}, UnderlyingInvestmentId: {}, UnderlyingCurrency: {}",
                     taxLotDetail.getSwapCurrency(),
-                    taxLotDetail.getSpread(),
-                    taxLotDetail.getMarketPrice(),
+                    convertFromAvroDecimal(taxLotDetail.getSpread()),
+                    convertFromAvroDecimal(taxLotDetail.getMarketPrice()),
                     taxLotDetail.getUnderlyingInvestmentId(),
                     taxLotDetail.getUnderlyingCurrency());
 
@@ -68,6 +72,16 @@ public class TaxLotConsumer {
         // - Trigger downstream workflows
         // - Update positions
         // - Send notifications
+    }
+
+    private BigDecimal convertFromAvroDecimal(ByteBuffer buffer) {
+        if (buffer == null) {
+            return BigDecimal.ZERO;
+        }
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+        buffer.rewind(); // Reset position for potential reuse
+        return new BigDecimal(new BigInteger(bytes), 9); // Scale of 9 from schema
     }
 }
 

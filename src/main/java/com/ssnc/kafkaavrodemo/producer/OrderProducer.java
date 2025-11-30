@@ -3,6 +3,7 @@ package com.ssnc.kafkaavrodemo.producer;
 import com.ssnc.avroModels.OrderDetails;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
@@ -15,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 public class OrderProducer {
 
     @Autowired
+    @Qualifier("orderKafkaTemplate")
     private KafkaTemplate<String, OrderDetails> kafkaTemplate;
 
     @Value("${spring.kafka.topic.orders}")

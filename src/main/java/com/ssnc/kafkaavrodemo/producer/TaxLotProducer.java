@@ -18,7 +18,7 @@ public class TaxLotProducer {
 
     @Autowired
     @Qualifier("taxLotKafkaTemplate")
-    private KafkaTemplate<String, TaxLotDetail> kafkaTemplate;
+    private KafkaTemplate<TaxLotDetailKey, TaxLotDetail> kafkaTemplate;
 
     @Value("${spring.kafka.topic.taxlots}")
     private String taxLotTopic;
@@ -27,11 +27,13 @@ public class TaxLotProducer {
         log.info("Sending tax lot to Kafka topic: {} with eventId: {}, investmentId: {}",
                 taxLotTopic, eventId, investmentId);
 
+        // Create Avro key from TaxLotDetailKey schema
+        TaxLotDetailKey key = TaxLotDetailKey.newBuilder()
+                .setEventId(eventId)
+                .setInvestmentId(investmentId)
+                .build();
 
-        // Create composite key from eventId and investmentId
-        String key = eventId + ":" + investmentId;
-
-        CompletableFuture<SendResult<String, TaxLotDetail>> future =
+        CompletableFuture<SendResult<TaxLotDetailKey, TaxLotDetail>> future =
             kafkaTemplate.send(taxLotTopic, key, taxLotDetail);
 
         future.whenComplete((result, ex) -> {
