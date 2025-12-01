@@ -4,51 +4,51 @@ import com.ssnc.avroModels.TaxLotDetail;
 import com.ssnc.avroModels.TaxLotDetailKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
+import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
 public class TaxLotProducer {
 
     @Autowired
-    @Qualifier("taxLotKafkaTemplate")
-    private KafkaTemplate<TaxLotDetailKey, TaxLotDetail> kafkaTemplate;
+    private StreamBridge streamBridge;
 
-    @Value("${spring.kafka.topic.taxlots}")
-    private String taxLotTopic;
+    private static final String BINDING_NAME = "taxLotProducer-out-0";
 
     public void sendTaxLot(TaxLotDetail taxLotDetail, String eventId, String investmentId) {
-        log.info("Sending tax lot to Kafka topic: {} with eventId: {}, investmentId: {}",
-                taxLotTopic, eventId, investmentId);
+        log.info("Sending tax lot via Spring Cloud Stream with eventId: {}, investmentId: {}",
+                eventId, investmentId);
 
-        // Create Avro key from TaxLotDetailKey schema
-        TaxLotDetailKey key = TaxLotDetailKey.newBuilder()
-                .setEventId(eventId)
-                .setInvestmentId(investmentId)
-                .build();
+        try {
+            // Create Avro key from TaxLotDetailKey schema
+            TaxLotDetailKey key = TaxLotDetailKey.newBuilder()
+                    .setEventId(eventId)
+                    .setInvestmentId(investmentId)
+                    .build();
 
-        CompletableFuture<SendResult<TaxLotDetailKey, TaxLotDetail>> future =
-            kafkaTemplate.send(taxLotTopic, key, taxLotDetail);
+            // Build message with Avro key
+            Message<TaxLotDetail> message = MessageBuilder
+                    .withPayload(taxLotDetail)
+                    .setHeader(KafkaHeaders.KEY, key)
+                    .build();
 
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                log.info("Successfully sent tax lot [EventId: {}, InvestmentId: {}] with offset [{}]",
-                        eventId,
-                        investmentId,
-                        result.getRecordMetadata().offset());
+            // Send message via StreamBridge
+            boolean sent = streamBridge.send(BINDING_NAME, message);
+
+            if (sent) {
+                log.info("Successfully sent tax lot [EventId: {}, InvestmentId: {}] via Spring Cloud Stream",
+                        eventId, investmentId);
             } else {
-                log.error("Unable to send tax lot [EventId: {}, InvestmentId: {}] due to : {}",
-                        eventId,
-                        investmentId,
-                        ex.getMessage());
+                log.error("Failed to send tax lot [EventId: {}, InvestmentId: {}]", eventId, investmentId);
             }
-        });
+        } catch (Exception ex) {
+            log.error("Unable to send tax lot [EventId: {}, InvestmentId: {}] due to : {}",
+                    eventId, investmentId, ex.getMessage(), ex);
+        }
     }
 }
 

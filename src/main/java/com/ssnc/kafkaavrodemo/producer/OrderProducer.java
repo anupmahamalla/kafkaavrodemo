@@ -3,42 +3,42 @@ package com.ssnc.kafkaavrodemo.producer;
 import com.ssnc.avroModels.OrderDetails;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
+import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
 public class OrderProducer {
 
     @Autowired
-    @Qualifier("orderKafkaTemplate")
-    private KafkaTemplate<String, OrderDetails> kafkaTemplate;
+    private StreamBridge streamBridge;
 
-    @Value("${spring.kafka.topic.orders}")
-    private String orderTopic;
+    private static final String BINDING_NAME = "orderProducer-out-0";
 
     public void sendOrder(OrderDetails orderDetails) {
-        log.info("Sending order to Kafka topic: {} with orderId: {}", orderTopic, orderDetails.getOrderId());
+        log.info("Sending order via Spring Cloud Stream with orderId: {}", orderDetails.getOrderId());
 
-        CompletableFuture<SendResult<String, OrderDetails>> future =
-            kafkaTemplate.send(orderTopic, orderDetails.getOrderId().toString(), orderDetails);
+        try {
+            // Build message with String key
+            Message<OrderDetails> message = MessageBuilder
+                    .withPayload(orderDetails)
+                    .setHeader(KafkaHeaders.KEY, orderDetails.getOrderId().toString())
+                    .build();
 
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                log.info("Successfully sent order [{}] with offset [{}]",
-                        orderDetails.getOrderId(),
-                        result.getRecordMetadata().offset());
+            // Send message via StreamBridge
+            boolean sent = streamBridge.send(BINDING_NAME, message);
+
+            if (sent) {
+                log.info("Successfully sent order [{}] via Spring Cloud Stream", orderDetails.getOrderId());
             } else {
-                log.error("Unable to send order [{}] due to : {}",
-                        orderDetails.getOrderId(),
-                        ex.getMessage());
+                log.error("Failed to send order [{}]", orderDetails.getOrderId());
             }
-        });
+        } catch (Exception ex) {
+            log.error("Unable to send order [{}] due to : {}", orderDetails.getOrderId(), ex.getMessage(), ex);
+        }
     }
 }
 

@@ -3,63 +3,72 @@ package com.ssnc.kafkaavrodemo.consumer;
 import com.ssnc.avroModels.TaxLotDetail;
 import com.ssnc.avroModels.TaxLotDetailKey;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.context.annotation.Bean;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.time.Instant;
+import java.util.function.Consumer;
 
 @Service
 @Slf4j
 public class TaxLotConsumer {
 
-    @KafkaListener(
-            topics = "${spring.kafka.topic.taxlots}",
-            groupId = "${spring.kafka.taxlot.consumer.group-id}",
-            containerFactory = "taxLotKafkaListenerContainerFactory"
-    )
-    public void consumeTaxLot(ConsumerRecord<TaxLotDetailKey, TaxLotDetail> record) {
-        try {
-            TaxLotDetailKey key = record.key();
-            TaxLotDetail taxLotDetail = record.value();
+    @Bean
+    public Consumer<Message<TaxLotDetail>> taxLotConsumer() {
+        return message -> {
+            try {
+                TaxLotDetail taxLotDetail = message.getPayload();
 
-            log.info(" Received tax lot from Kafka - Topic: {}, PARTITION: {}, Offset: {}, Key: [EventId: {}, InvestmentId: {}]",
-                    record.topic(),
-                    record.partition(),  // Shows which partition (0, 1, or 2)
-                    record.offset(),
-                    key.getEventId(),
-                    key.getInvestmentId());
+                // Extract metadata from message headers
+                Object partition = message.getHeaders().get(KafkaHeaders.RECEIVED_PARTITION);
+                Object offset = message.getHeaders().get(KafkaHeaders.OFFSET);
+                Object topic = message.getHeaders().get(KafkaHeaders.RECEIVED_TOPIC);
+                Object messageKey = message.getHeaders().get(KafkaHeaders.RECEIVED_KEY);
 
-            log.info("Tax Lot Details - Client: {} (ID: {}), Fund: {} (ID: {}), TaxLotId: {}, Server: {}",
-                    taxLotDetail.getClientShortName(),
-                    taxLotDetail.getClientId(),
-                    taxLotDetail.getFundShortName(),
-                    taxLotDetail.getFundId(),
-                    taxLotDetail.getTaxLotId(),
-                    taxLotDetail.getGenevaServer());
+                TaxLotDetailKey key = null;
+                if (messageKey instanceof TaxLotDetailKey) {
+                    key = (TaxLotDetailKey) messageKey;
+                }
 
-            log.info("Trade Info - TradeDate: {}, EffectiveDate: {}, Quantity: {}, TradePrice: {}, TradeNotional: {}",
-                    taxLotDetail.getTradeDate(), taxLotDetail.getEffectiveDate(),
-                    convertFromAvroDecimal(taxLotDetail.getQuantity()),
-                    convertFromAvroDecimal(taxLotDetail.getTradePrice()),
-                    convertFromAvroDecimal(taxLotDetail.getTradeNotional()));
+                log.info("Received tax lot from Spring Cloud Stream - Topic: {}, PARTITION: {}, Offset: {}, Key: [EventId: {}, InvestmentId: {}]",
+                        topic,
+                        partition,
+                        offset,
+                        key != null ? key.getEventId() : "N/A",
+                        key != null ? key.getInvestmentId() : "N/A");
 
-            log.info("Swap Info - Currency: {}, Spread: {}, MarketPrice: {}, UnderlyingInvestmentId: {}, UnderlyingCurrency: {}",
-                    taxLotDetail.getSwapCurrency(),
-                    convertFromAvroDecimal(taxLotDetail.getSpread()),
-                    convertFromAvroDecimal(taxLotDetail.getMarketPrice()),
-                    taxLotDetail.getUnderlyingInvestmentId(),
-                    taxLotDetail.getUnderlyingCurrency());
+                log.info("Tax Lot Details - Client: {} (ID: {}), Fund: {} (ID: {}), TaxLotId: {}, Server: {}",
+                        taxLotDetail.getClientShortName(),
+                        taxLotDetail.getClientId(),
+                        taxLotDetail.getFundShortName(),
+                        taxLotDetail.getFundId(),
+                        taxLotDetail.getTaxLotId(),
+                        taxLotDetail.getGenevaServer());
 
-            // Process the tax lot here
-            processTaxLot(taxLotDetail);
-        } catch (Exception e) {
-            log.error("Error processing tax lot: ", e);
-            throw e;
-        }
+                log.info("Trade Info - TradeDate: {}, EffectiveDate: {}, Quantity: {}, TradePrice: {}, TradeNotional: {}",
+                        taxLotDetail.getTradeDate(), taxLotDetail.getEffectiveDate(),
+                        convertFromAvroDecimal(taxLotDetail.getQuantity()),
+                        convertFromAvroDecimal(taxLotDetail.getTradePrice()),
+                        convertFromAvroDecimal(taxLotDetail.getTradeNotional()));
+
+                log.info("Swap Info - Currency: {}, Spread: {}, MarketPrice: {}, UnderlyingInvestmentId: {}, UnderlyingCurrency: {}",
+                        taxLotDetail.getSwapCurrency(),
+                        convertFromAvroDecimal(taxLotDetail.getSpread()),
+                        convertFromAvroDecimal(taxLotDetail.getMarketPrice()),
+                        taxLotDetail.getUnderlyingInvestmentId(),
+                        taxLotDetail.getUnderlyingCurrency());
+
+                // Process the tax lot
+                processTaxLot(taxLotDetail);
+            } catch (Exception e) {
+                log.error("Error processing tax lot: ", e);
+                throw new RuntimeException("Failed to process tax lot", e);
+            }
+        };
     }
 
     private void processTaxLot(TaxLotDetail taxLotDetail) {
