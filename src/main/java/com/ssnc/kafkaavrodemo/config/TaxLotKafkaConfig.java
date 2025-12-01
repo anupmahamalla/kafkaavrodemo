@@ -85,6 +85,10 @@ public class TaxLotKafkaConfig {
         ConcurrentKafkaListenerContainerFactory<TaxLotDetailKey, TaxLotDetail> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(taxLotConsumerFactory());
+
+        // Enable concurrent consumption - 3 consumers for 3 partitions
+        factory.setConcurrency(3);
+
         return factory;
     }
 }

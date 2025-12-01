@@ -26,9 +26,12 @@ public class TaxLotConsumer {
             TaxLotDetailKey key = record.key();
             TaxLotDetail taxLotDetail = record.value();
 
-            log.info("Received tax lot from Kafka - Topic: {}, Partition: {}, Offset: {}, Key: [EventId: {}, InvestmentId: {}]",
-                    record.topic(), record.partition(), record.offset(),
-                    key.getEventId(), key.getInvestmentId());
+            log.info(" Received tax lot from Kafka - Topic: {}, PARTITION: {}, Offset: {}, Key: [EventId: {}, InvestmentId: {}]",
+                    record.topic(),
+                    record.partition(),  // Shows which partition (0, 1, or 2)
+                    record.offset(),
+                    key.getEventId(),
+                    key.getInvestmentId());
 
             log.info("Tax Lot Details - Client: {} (ID: {}), Fund: {} (ID: {}), TaxLotId: {}, Server: {}",
                     taxLotDetail.getClientShortName(),

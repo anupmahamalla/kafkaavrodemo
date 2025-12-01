@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/taxlots")
@@ -70,6 +70,78 @@ public class TaxLotController {
     @GetMapping("/test")
     public ResponseEntity<String> testEndpoint() {
         return ResponseEntity.ok("Tax lot service is running!");
+    }
+
+    @PostMapping("/test-partitions")
+    public ResponseEntity<Map<String, Object>> testPartitions() {
+        try {
+            List<Map<String, String>> results = new ArrayList<>();
+            long currentTimestamp = Instant.now().toEpochMilli();
+
+            // Send 5 messages with different keys to demonstrate partition distribution
+            String[][] testData = {
+                {"EVT-001", "INV-A", "CLIENT-A"},
+                {"EVT-002", "INV-B", "CLIENT-B"},
+                {"EVT-003", "INV-C", "CLIENT-C"},
+                {"EVT-004", "INV-D", "CLIENT-D"},
+                {"EVT-005", "INV-E", "CLIENT-E"}
+            };
+
+            for (int i = 0; i < testData.length; i++) {
+                String eventId = testData[i][0];
+                String investmentId = testData[i][1];
+                String clientName = testData[i][2];
+
+                TaxLotDetail taxLotDetail = TaxLotDetail.newBuilder()
+                        .setClientShortName(clientName)
+                        .setClientId((long) (1001 + i))
+                        .setFundShortName("FUND-" + (char)('A' + i))
+                        .setFundId((long) (5001 + i))
+                        .setGenevaServer("GENEVA-PROD-0" + (i + 1))
+                        .setTaxLotId((long) (100001 + i))
+                        .setAccrualDate(Instant.ofEpochSecond(currentTimestamp))
+                        .setTradeDate(Instant.ofEpochSecond(currentTimestamp))
+                        .setEffectiveDate(Instant.ofEpochSecond(currentTimestamp))
+                        .setQuantity(convertToAvroDecimal(new BigDecimal("1000.500").add(new BigDecimal(i * 100))))
+                        .setTradeNotional(convertToAvroDecimal(new BigDecimal("250000.75").add(new BigDecimal(i * 10000))))
+                        .setTradePrice(convertToAvroDecimal(new BigDecimal("250.50").add(new BigDecimal(i))))
+                        .setResetPrice(convertToAvroDecimal(new BigDecimal("251.00").add(new BigDecimal(i))))
+                        .setSwapCurrency("USD")
+                        .setSpread(convertToAvroDecimal(new BigDecimal("0.025")))
+                        .setMarketPrice(convertToAvroDecimal(new BigDecimal("252.25").add(new BigDecimal(i))))
+                        .setUnderlyingInvestmentId("UNDERLYING-INV-00" + (i + 1))
+                        .setUnderlyingCurrency("USD")
+                        .setUserTranId("TXN-2024-00" + (i + 1))
+                        .setKnowledgeDate(Instant.ofEpochSecond(currentTimestamp))
+                        .setCreatedAt(Instant.ofEpochSecond(currentTimestamp))
+                        .build();
+
+                taxLotProducer.sendTaxLot(taxLotDetail, eventId, investmentId);
+
+                Map<String, String> result = new HashMap<>();
+                result.put("eventId", eventId);
+                result.put("investmentId", investmentId);
+                result.put("client", clientName);
+                results.add(result);
+
+                // Small delay to see messages spread across partitions
+                Thread.sleep(100);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("messagesSent", testData.length);
+            response.put("partitions", 3);
+            response.put("message", "Check consumer logs to see partition distribution (PARTITION: 0, 1, or 2)");
+            response.put("sentMessages", results);
+
+            log.info("Test partition endpoint: Sent {} messages with different keys", testData.length);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error testing partitions: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 
     private ByteBuffer convertToAvroDecimal(BigDecimal value) {

@@ -15,6 +15,9 @@ spring:
     topic:
       orders: order-details-topic
       taxlots: taxlot-details-topic
+      # Partition configuration
+      taxlots-partitions: 3
+      taxlots-replication-factor: 1
 
     # Order-specific configuration (uses String keys)
     order:
